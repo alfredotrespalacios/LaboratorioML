@@ -1,4 +1,4 @@
-# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.10
+# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.11
 
 Aplicación educativa en Streamlit con 8 módulos:
 
@@ -126,3 +126,21 @@ Esta aplicación tiene únicamente fines pedagógicos. Su objetivo es que los es
   - tabla de pronóstico,
   - gráfica de calibración y pronóstico.
 - Los nuevos resultados se exportan a Excel, PDF, JSON y se guardan para el informe ejecutivo.
+
+
+## Cambios v1.11
+
+- Se agrega el bloque común “Modo de pronóstico” en los módulos de regresión:
+  - Regresión lineal.
+  - Otras regresiones.
+  - Red neuronal, cuando el tipo de problema es regresión.
+- El usuario puede seleccionar:
+  - Evaluar capacidad predictiva del modelo.
+  - Generar pronóstico de valores no observados.
+- Cada resultado guarda:
+  - modo_pronostico,
+  - uso_modo_pronostico,
+  - implicacion_modo_pronostico.
+- La explicación del modo aparece en pantalla, Excel, JSON, PDF y resultados para el informe ejecutivo.
+- Cuando el modo es evaluación predictiva, se calculan métricas de pronóstico: MAE, MSE, RMSE y MAPE cuando aplica.
+- Cuando el modo es valores no observados, el sistema pronostica filas donde Y está vacía y aclara que no hay error observable.

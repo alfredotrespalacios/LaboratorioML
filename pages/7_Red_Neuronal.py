@@ -19,6 +19,13 @@ from utils.graficos import (
 )
 from utils.modelos import obtener_red_neuronal
 from utils.pdf_reportes import crear_pdf_modulo
+from utils.pronostico import (
+    MODO_EVALUACION,
+    MODO_VALORES_NO_OBSERVADOS,
+    agregar_errores_pronostico,
+    descripcion_modo_pronostico,
+    metricas_pronostico,
+)
 from utils.transformaciones import codificar_y
 from utils.variables import capturar_descripcion_variables, descripcion_variables_df
 from utils.estilos import mostrar_encabezado, caja_pedagogica
@@ -150,17 +157,26 @@ max_iter = st.sidebar.slider("Iteraciones máximas", 100, 1000, 400, 50)
 learning_rate = st.sidebar.number_input("Tasa de aprendizaje", min_value=0.0001, max_value=0.1, value=0.001, step=0.0005, format="%.4f")
 
 if tipo == "Regresión":
-    max_pronostico = max(0, len(df) - 10)
-    n_pronostico = st.sidebar.number_input(
-        "Número de datos finales para pronóstico",
-        min_value=0,
-        max_value=max_pronostico,
-        value=min(20, max_pronostico),
-        step=1,
-        help="Estos datos finales no se usan para entrenar la red; se reservan para pronosticar la variable objetivo.",
-    )
+    modo_pronostico = st.sidebar.radio("Modo de pronóstico", [MODO_EVALUACION, MODO_VALORES_NO_OBSERVADOS])
+    info_modo = descripcion_modo_pronostico(modo_pronostico)
+    if modo_pronostico == MODO_EVALUACION:
+        max_pronostico = max(0, len(df) - 10)
+        n_pronostico = st.sidebar.number_input(
+            "Número de datos finales para evaluación de pronóstico",
+            min_value=0,
+            max_value=max_pronostico,
+            value=min(20, max_pronostico),
+            step=1,
+            help="Estos datos finales no se usan para entrenar la red; se reservan para evaluar el pronóstico.",
+        )
+    else:
+        n_pronostico = 0
+        st.sidebar.info("Este modo usa filas donde la variable Y está vacía y las X están disponibles.")
     test_size = None
+    st.info(f"**Modo de pronóstico seleccionado:** {info_modo['modo_pronostico']}\n\n**Uso:** {info_modo['uso_modo_pronostico']}\n\n**Implicación:** {info_modo['implicacion_modo_pronostico']}")
 else:
+    modo_pronostico = None
+    info_modo = {}
     n_pronostico = 0
     test_size = st.sidebar.slider("Porcentaje de prueba", 10, 40, 25) / 100
 
@@ -187,16 +203,20 @@ if st.button("Entrenar red neuronal"):
     hidden = tuple([neuronas] * n_capas)
 
     if tipo == "Regresión":
-        if int(n_pronostico) >= len(datos) - 10:
-            st.error("El número de datos para pronóstico es demasiado alto. Deben quedar suficientes datos para entrenar la red.")
-            st.stop()
+        datos_raw = df[[target] + x_cols].replace([np.inf, -np.inf], np.nan).reset_index(drop=True)
 
-        if int(n_pronostico) > 0:
-            datos_train = datos.iloc[:-int(n_pronostico)].copy()
-            datos_fore = datos.iloc[-int(n_pronostico):].copy()
+        if modo_pronostico == MODO_EVALUACION:
+            datos_validos = datos_raw.dropna(subset=[target] + x_cols).copy()
+            if int(n_pronostico) >= len(datos_validos) - 10:
+                st.error("El número de datos para pronóstico es demasiado alto. Deben quedar suficientes datos para entrenar la red.")
+                st.stop()
+            datos_train = datos_validos.iloc[:-int(n_pronostico)].copy() if int(n_pronostico) > 0 else datos_validos.copy()
+            datos_fore = datos_validos.iloc[-int(n_pronostico):].copy() if int(n_pronostico) > 0 else pd.DataFrame(columns=datos_raw.columns)
         else:
-            datos_train = datos.copy()
-            datos_fore = pd.DataFrame(columns=datos.columns)
+            datos_train = datos_raw.dropna(subset=[target] + x_cols).copy()
+            datos_fore = datos_raw[datos_raw[target].isna()].dropna(subset=x_cols).copy()
+            if datos_fore.empty:
+                st.warning("No se encontraron filas con Y vacía y variables X completas para pronosticar valores no observados.")
 
         X_train = datos_train[x_cols]
         y_train = datos_train[target]
@@ -228,12 +248,15 @@ if st.button("Entrenar red neuronal"):
             y_fore_hat = modelo.predict(X_fore_s)
 
             pronostico_df = pd.DataFrame({
-                "observacion": range(len(datos_train), len(datos_train) + len(datos_fore)),
+                "observacion": datos_fore.index,
                 "y_real": datos_fore[target].values,
                 "y_pronosticada": y_fore_hat,
-                "error_pronostico": datos_fore[target].values - y_fore_hat,
-                "periodo": "pronostico",
+                "periodo": "evaluacion_pronostico" if modo_pronostico == MODO_EVALUACION else "valor_no_observado",
             })
+            if modo_pronostico == MODO_EVALUACION:
+                pronostico_df = agregar_errores_pronostico(pronostico_df, "y_real", "y_pronosticada")
+
+        metricas_fore = metricas_pronostico(pronostico_df.get("y_real", []), pronostico_df.get("y_pronosticada", [])) if modo_pronostico == MODO_EVALUACION and not pronostico_df.empty else {}
 
         serie_modelo_df = pd.DataFrame({
             "observacion": pred_df["observacion"],
@@ -267,10 +290,12 @@ if st.button("Entrenar red neuronal"):
             "activation": activation,
             "max_iter": max_iter,
             "learning_rate_init": learning_rate,
-            "n_pronostico": int(n_pronostico),
+            **info_modo,
+            "n_pronostico": int(n_pronostico) if modo_pronostico == MODO_EVALUACION else None,
             "filas_calibracion": len(datos_train),
             "filas_pronostico": len(datos_fore),
             "metricas": metricas,
+            "metricas_pronostico": metricas_fore,
             "tabla_descriptiva_comparativa": tabla_descriptiva_comparativa.to_dict(orient="records"),
             "tabla_residuales": tabla_residuales.to_dict(orient="records"),
             "predicciones": pred_df.to_dict(orient="records"),
@@ -335,6 +360,9 @@ if res:
     desc_df = descripcion_variables_df(res.get("descripcion_variables", {}))
 
     if res["tipo_problema"] == "Regresión":
+        st.subheader("Modo de pronóstico usado")
+        st.info(f"**{res.get('modo_pronostico')}**\n\n**Uso:** {res.get('uso_modo_pronostico')}\n\n**Implicación:** {res.get('implicacion_modo_pronostico')}")
+
         st.subheader("Comparación descriptiva: variable histórica vs. estimada")
         st.dataframe(tabla_descriptiva_comparativa, use_container_width=True)
         st.caption(
@@ -371,9 +399,12 @@ if res:
 
         st.subheader("Pronóstico con los datos finales reservados")
         if pronostico_df.empty:
-            st.info("No se reservaron datos finales para pronóstico.")
+            st.info("No hay filas disponibles para pronóstico según el modo seleccionado.")
         else:
             st.dataframe(pronostico_df, use_container_width=True)
+            if res.get("metricas_pronostico"):
+                st.write("**Métricas de evaluación de pronóstico**")
+                st.dataframe(pd.DataFrame([res.get("metricas_pronostico", {})]), use_container_width=True)
             st.plotly_chart(
                 grafico_lineas_modelo(
                     serie_modelo_df,
@@ -414,7 +445,13 @@ if res:
                 "Descripcion_variables": desc_df,
                 "Comparacion_descriptiva": tabla_descriptiva_comparativa,
                 "Estadisticos_residuales": tabla_residuales,
+                "Modo_pronostico": pd.DataFrame([{
+                    "modo_pronostico": res.get("modo_pronostico"),
+                    "uso_modo_pronostico": res.get("uso_modo_pronostico"),
+                    "implicacion_modo_pronostico": res.get("implicacion_modo_pronostico"),
+                }]),
                 "Metricas": pd.DataFrame([res["metricas"]]),
+                "Metricas_pronostico": pd.DataFrame([res.get("metricas_pronostico", {})]),
                 "Predicciones": pred_df,
                 "Pronostico": pronostico_df,
                 "Serie_modelo": serie_modelo_df,
@@ -479,7 +516,13 @@ if res:
                 ("Descripción de variables", desc_df),
                 ("Comparación descriptiva", tabla_descriptiva_comparativa),
                 ("Estadísticos de residuales", tabla_residuales),
+                ("Modo de pronóstico", pd.DataFrame([{
+                    "modo_pronostico": res.get("modo_pronostico"),
+                    "uso_modo_pronostico": res.get("uso_modo_pronostico"),
+                    "implicacion_modo_pronostico": res.get("implicacion_modo_pronostico"),
+                }])),
                 ("Métricas", pd.DataFrame([res["metricas"]]),),
+                ("Métricas de pronóstico", pd.DataFrame([res.get("metricas_pronostico", {})])),
                 ("Predicciones", pred_df),
                 ("Pronóstico", pronostico_df),
                 ("Serie modelo", serie_modelo_df),
@@ -489,7 +532,8 @@ if res:
             notas=[
                 "La comparación descriptiva permite revisar si la red reproduce niveles, dispersión y percentiles de la variable histórica.",
                 "Los residuales miden la diferencia entre el valor observado y el valor estimado por la red neuronal.",
-                "El pronóstico usa los datos finales reservados que no se emplean para entrenar la red.",
+                res.get("uso_modo_pronostico", ""),
+                res.get("implicacion_modo_pronostico", ""),
                 "Los resultados son pedagógicos y requieren validación para cualquier uso real.",
             ],
         )

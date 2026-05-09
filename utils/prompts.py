@@ -78,6 +78,7 @@ Instrucciones:
 6. Señala limitaciones metodológicas cuando existan.
 7. Interpreta con prudencia pruebas de normalidad, raíz unitaria, ACF, PACF, residuales y métricas de modelo.
 8. No inventes resultados, variables, cifras ni conclusiones.
+9. Interpreta explícitamente el modo de pronóstico seleccionado por el usuario. Si el modo fue evaluación de capacidad predictiva, analiza los errores y el desempeño fuera de muestra. Si el modo fue pronóstico de valores no observados, aclara que se trata de estimaciones sin error observable y que requieren validación posterior.
 {instruccion_contexto}
 {instruccion_respuestas}
 
