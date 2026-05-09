@@ -28,15 +28,19 @@ def construir_prompt_integrado(
     preguntas_clave = [x.strip() for x in (preguntas_clave or []) if str(x).strip()]
 
     bloque_links = ""
+    instruccion_contexto = ""
     if links_contexto:
-        bloque_links = "\nLinks web de contexto aportados por el usuario:\n" + "\n".join([f"- {x}" for x in links_contexto])
+        bloque_links = "\nLinks web de noticias/contexto aportados por el usuario:\n" + "\n".join([f"- {x}" for x in links_contexto])
+        instruccion_contexto = """
+9. Incluye una sección específica llamada “Contexto noticioso”, donde relaciones las noticias o fuentes de contexto suministradas por el usuario con los resultados cuantitativos. No inventes contenido de los links; si no puedes acceder a ellos, úsalos solo como referencias de contexto aportadas por el usuario.
+"""
 
     bloque_preguntas = ""
     instruccion_respuestas = ""
     if preguntas_clave:
         bloque_preguntas = "\nPreguntas del usuario para responder en la sección “Respuestas clave”:\n" + "\n".join([f"{i+1}. {p}" for i, p in enumerate(preguntas_clave)])
         instruccion_respuestas = """
-9. Además del informe ejecutivo, incluye una sección llamada “Respuestas clave”, donde respondas de forma directa y argumentada las preguntas planteadas por el usuario. Cada pregunta debe aparecer como subtítulo dentro de esa sección.
+10. Además del informe ejecutivo, incluye una sección llamada “Respuestas clave”, donde respondas de forma directa y argumentada las preguntas planteadas por el usuario. Cada pregunta debe aparecer como subtítulo dentro de esa sección.
 """
 
     prompt = f"""
@@ -74,18 +78,20 @@ Instrucciones:
 6. Señala limitaciones metodológicas cuando existan.
 7. Interpreta con prudencia pruebas de normalidad, raíz unitaria, ACF, PACF, residuales y métricas de modelo.
 8. No inventes resultados, variables, cifras ni conclusiones.
+{instruccion_contexto}
 {instruccion_respuestas}
 
 Estructura solicitada:
 1. Resumen ejecutivo
 2. Objetivo del análisis
 3. Descripción de los datos
-4. Principales hallazgos
-5. Interpretación integrada
-6. Limitaciones
-7. Recomendaciones
-8. Respuestas clave, solo si el usuario formuló preguntas
-9. Conclusión
+4. Contexto noticioso, si el usuario suministró links
+5. Principales hallazgos
+6. Interpretación integrada
+7. Limitaciones
+8. Recomendaciones
+9. Respuestas clave, solo si el usuario formuló preguntas
+10. Conclusión
 
 Redacta en español profesional.
 """

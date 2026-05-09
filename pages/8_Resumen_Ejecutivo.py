@@ -72,11 +72,11 @@ st.header("3. Contexto del informe")
 objetivo = st.text_area("Objetivo general del informe", value="Redactar un informe ejecutivo que interprete los resultados cuantitativos disponibles.", height=90)
 descripcion_datos = st.text_area("Descripción breve de los datos", value="Los datos corresponden a una base cuantitativa utilizada con fines académicos.", height=90)
 
-with st.expander("Contexto externo: links web de noticias o referencias", expanded=True):
-    st.write("Pegue hasta cinco links que sirvan como contexto para el análisis. La app no lee estos links; los incorpora al prompt para orientar a la IA.")
+with st.expander("Contexto noticioso: links web de noticias o referencias", expanded=True):
+    st.write("Pegue hasta dos links de noticias o contexto. La app no lee estos links; los incorpora al prompt para orientar a la IA.")
     links_contexto = []
-    for i in range(1, 6):
-        links_contexto.append(st.text_input(f"Link de contexto {i}", key=f"link_contexto_{i}"))
+    for i in range(1, 3):
+        links_contexto.append(st.text_input(f"Link de contexto noticioso {i}", key=f"link_contexto_{i}"))
 
 with st.expander("Respuestas clave: preguntas que debe contestar el informe", expanded=True):
     st.write("Escriba hasta tres preguntas clave. El prompt pedirá responderlas en una sección llamada **Respuestas clave**.")
