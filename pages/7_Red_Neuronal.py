@@ -7,10 +7,11 @@ from sklearn.preprocessing import StandardScaler
 from utils.carga_datos import cargar_datos_modulo, detectar_columnas_numericas
 from utils.diagnosticos import matriz_confusion_df, metricas_clasificacion, metricas_regresion
 from utils.exportacion import preparar_excel_generico, preparar_json_descarga
-from utils.pdf_reportes import crear_pdf_modulo
-from utils.graficos import grafico_loss_curve, grafico_matriz_confusion, grafico_real_vs_predicho
+from utils.graficos import grafico_arquitectura_red, grafico_lineas_modelo, grafico_loss_curve, grafico_matriz_confusion, grafico_real_vs_predicho
 from utils.modelos import obtener_red_neuronal
+from utils.pdf_reportes import crear_pdf_modulo
 from utils.transformaciones import codificar_y
+from utils.variables import capturar_descripcion_variables, descripcion_variables_df
 from utils.estilos import mostrar_encabezado, caja_pedagogica
 
 st.set_page_config(page_title="Red neuronal", page_icon="🧠", layout="wide")
@@ -21,23 +22,24 @@ caja_pedagogica("Permite configurar capas, neuronas, activación, iteraciones y 
 with st.expander("Guía rápida: ¿para qué sirven los parámetros de la red neuronal?", expanded=True):
     st.markdown(
         """
-        **Tipo de problema:** define si la red se usará para predecir un valor continuo, como en regresión, o una categoría, como en clasificación.
+        **Tipo de problema:** define si la red se usará para predecir un valor continuo o una categoría.
 
-        **Número de capas ocultas:** indica cuántas etapas internas de procesamiento tendrá la red. Más capas pueden capturar relaciones más complejas, pero también aumentan el riesgo de sobreajuste y hacen más difícil el entrenamiento.
+        **Número de capas ocultas:** indica cuántas etapas internas de procesamiento tendrá la red.
 
-        **Neuronas por capa:** define la capacidad de aprendizaje de cada capa. Más neuronas dan mayor flexibilidad al modelo, pero pueden hacerlo más pesado y propenso a aprender ruido.
+        **Neuronas por capa:** define la capacidad de aprendizaje de cada capa.
 
-        **Función de activación:** transforma la información dentro de la red. `relu` suele ser una opción práctica; `tanh` y `logistic` pueden servir en algunos casos, pero pueden entrenar más lentamente.
+        **Función de activación:** transforma la información dentro de la red. `relu` suele ser una opción práctica.
 
-        **Iteraciones máximas:** número máximo de intentos de ajuste de los pesos de la red. Si son pocas, la red puede no aprender suficiente; si son muchas, puede tardar más o sobreajustarse.
+        **Iteraciones máximas:** número máximo de intentos de ajuste de los pesos de la red.
 
-        **Tasa de aprendizaje:** controla el tamaño de los pasos durante el entrenamiento. Una tasa muy alta puede impedir la convergencia; una tasa muy baja puede hacer el entrenamiento demasiado lento.
+        **Tasa de aprendizaje:** controla el tamaño de los pasos durante el entrenamiento.
 
-        **Porcentaje de prueba:** parte de los datos que se reserva para evaluar el modelo fuera de la muestra de entrenamiento. Ayuda a revisar si el modelo generaliza.
+        **Porcentaje de prueba:** parte de los datos que se reserva para evaluar el modelo fuera de la muestra de entrenamiento.
         """
     )
 
 df, nombre_archivo, fuente_datos = cargar_datos_modulo("data/datos_red_neuronal.xlsx", "red_neuronal")
+st.subheader("Vista previa de los datos seleccionados")
 st.dataframe(df.head(20), use_container_width=True)
 
 num_cols = detectar_columnas_numericas(df)
@@ -56,6 +58,12 @@ test_size = st.sidebar.slider("Porcentaje de prueba", 10, 40, 25) / 100
 if not x_cols:
     st.warning("Seleccione variables explicativas.")
     st.stop()
+
+descripcion_variables = capturar_descripcion_variables([target] + x_cols, "red_neuronal")
+
+st.subheader("Esquema visual de la arquitectura seleccionada")
+st.plotly_chart(grafico_arquitectura_red(len(x_cols), n_capas, neuronas, 1), use_container_width=True)
+st.caption("El esquema muestra las variables de entrada, las capas ocultas configuradas y la salida del modelo. Si hay muchas neuronas, se muestra una representación simplificada.")
 
 if "resultados_red_neuronal_actuales" not in st.session_state:
     st.session_state["resultados_red_neuronal_actuales"] = None
@@ -79,11 +87,11 @@ if st.button("Entrenar red neuronal"):
 
     if tipo == "Regresión":
         metricas = metricas_regresion(y_test, y_pred)
-        pred_df = pd.DataFrame({"y_real": y_test.values if hasattr(y_test, "values") else y_test, "y_predicho": y_pred})
+        pred_df = pd.DataFrame({"observacion": range(len(y_pred)), "y_real": y_test.values if hasattr(y_test, "values") else y_test, "y_predicho": y_pred})
         cm_df = pd.DataFrame()
     else:
         metricas = metricas_clasificacion(y_test, y_pred)
-        pred_df = pd.DataFrame({"y_real": y_test, "y_predicho": y_pred})
+        pred_df = pd.DataFrame({"observacion": range(len(y_pred)), "y_real": y_test, "y_predicho": y_pred})
         cm_df = matriz_confusion_df(y_test, y_pred)
 
     loss_curve = getattr(modelo, "loss_curve_", [])
@@ -96,6 +104,7 @@ if st.button("Entrenar red neuronal"):
         "tipo_problema": tipo,
         "variable_objetivo": target,
         "variables_explicativas": x_cols,
+        "descripcion_variables": descripcion_variables,
         "arquitectura": str(hidden),
         "activation": activation,
         "max_iter": max_iter,
@@ -111,34 +120,30 @@ res = st.session_state["resultados_red_neuronal_actuales"]
 if res:
     st.subheader("Métricas")
     st.json(res["metricas"])
-    st.caption(
-        "Las métricas resumen el desempeño del modelo. En regresión se revisan medidas como R², MAE y RMSE; "
-        "en clasificación se revisan accuracy, precision, recall y F1."
-    )
+    st.caption("Las métricas resumen el desempeño del modelo. En regresión se revisan R², MAE y RMSE; en clasificación, accuracy, precision, recall y F1.")
 
     pred_df = pd.DataFrame(res["predicciones"])
+    desc_df = descripcion_variables_df(res.get("descripcion_variables", {}))
+
     if res["tipo_problema"] == "Regresión":
+        st.plotly_chart(grafico_lineas_modelo(pred_df, "observacion", ["y_real", "y_predicho"], "Variable objetivo histórica vs. resultado de la red neuronal"), use_container_width=True)
+        st.caption("Esta gráfica compara la variable objetivo real con la salida de la red neuronal en el conjunto de prueba.")
         st.plotly_chart(grafico_real_vs_predicho(pred_df["y_real"], pred_df["y_predicho"]), use_container_width=True)
-        st.caption(
-            "Esta gráfica compara valores observados con valores estimados. Mientras más cerca estén los puntos "
-            "de la línea diagonal, mejor será la capacidad predictiva del modelo."
-        )
+        st.caption("Mientras más cerca estén los puntos de la línea diagonal, mejor será la capacidad predictiva del modelo.")
     else:
         cm_records = res["matriz_confusion"]
         if cm_records:
             cm_df = pd.DataFrame(cm_records).set_index("index")
             st.plotly_chart(grafico_matriz_confusion(cm_df), use_container_width=True)
-            st.caption(
-                "La matriz de confusión muestra aciertos y errores de clasificación. Los valores de la diagonal "
-                "principal son clasificaciones correctas; los valores fuera de la diagonal son confusiones entre clases."
-            )
+            st.caption("La matriz de confusión muestra aciertos y errores de clasificación.")
+
+    if not desc_df.empty:
+        st.subheader("Descripción de variables")
+        st.dataframe(desc_df, use_container_width=True)
 
     if res["loss_curve"]:
         st.plotly_chart(grafico_loss_curve(res["loss_curve"]), use_container_width=True)
-        st.caption(
-            "La curva de pérdida muestra cómo cambia el error durante el entrenamiento. Una pérdida decreciente "
-            "indica aprendizaje; si se estabiliza, el modelo pudo haber llegado a una zona de convergencia."
-        )
+        st.caption("La curva de pérdida muestra cómo cambia el error durante el entrenamiento.")
 
     st.markdown("---")
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -147,13 +152,14 @@ if res:
             st.session_state["resultados_red_neuronal"] = {**res, "fecha_guardado": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
             st.success("Resultados guardados.")
     with c2:
-        excel = preparar_excel_generico(res, {"Metricas": pd.DataFrame([res["metricas"]]), "Predicciones": pred_df, "Loss": pd.DataFrame({"loss": res["loss_curve"]})})
+        excel = preparar_excel_generico(res, {"Descripcion_variables": desc_df, "Metricas": pd.DataFrame([res["metricas"]]), "Predicciones": pred_df, "Loss": pd.DataFrame({"loss": res["loss_curve"]})})
         st.download_button("Descargar Excel", excel, "resultados_red_neuronal.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     with c3:
         st.download_button("Descargar JSON", preparar_json_descarga(res), "resultados_red_neuronal.json", "application/json")
     with c4:
         figs = []
         if res["tipo_problema"] == "Regresión":
+            figs.append(("Variable objetivo real vs. resultado de la red", grafico_lineas_modelo(pred_df, "observacion", ["y_real", "y_predicho"], "Variable objetivo real vs. resultado de la red"), "Muestra la comparación en el orden de observación."))
             figs.append(("Real vs. predicho", grafico_real_vs_predicho(pred_df["y_real"], pred_df["y_predicho"]), "Puntos cercanos a la diagonal indican mejor predicción."))
         else:
             cm_records = res["matriz_confusion"]
@@ -165,7 +171,7 @@ if res:
         pdf_bytes = crear_pdf_modulo(
             "Informe del módulo: Red neuronal",
             res,
-            tablas=[("Métricas", pd.DataFrame([res["metricas"]]),), ("Predicciones", pred_df), ("Loss curve", pd.DataFrame({"loss": res["loss_curve"]}))],
+            tablas=[("Descripción de variables", desc_df), ("Métricas", pd.DataFrame([res["metricas"]]),), ("Predicciones", pred_df), ("Loss curve", pd.DataFrame({"loss": res["loss_curve"]}))],
             figuras=figs,
             notas=["El número de capas, neuronas y tasa de aprendizaje controlan la capacidad y dinámica del entrenamiento.", "Los resultados son pedagógicos y requieren validación para cualquier uso real."]
         )

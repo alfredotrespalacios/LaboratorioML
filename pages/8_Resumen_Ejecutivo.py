@@ -28,12 +28,9 @@ if claves_existentes:
             st.write(f"**Fuente de datos:** {resultado.get('fuente_datos', 'No disponible')}")
             st.write(f"**Fecha de guardado:** {resultado.get('fecha_guardado', 'No disponible')}")
             st.write(f"**Tipo de análisis:** {resultado.get('tipo_analisis', nombre)}")
-            if "variables_analizadas" in resultado:
-                st.write("**Variables analizadas:**")
-                st.write(resultado["variables_analizadas"])
-            if "variables_explicativas" in resultado:
-                st.write("**Variables explicativas:**")
-                st.write(resultado["variables_explicativas"])
+            if "descripcion_variables" in resultado:
+                st.write("**Descripción de variables:**")
+                st.json(resultado["descripcion_variables"])
             if st.button(f"Eliminar resultados de {nombre}", key=f"eliminar_{clave}"):
                 del st.session_state[clave]
                 st.success(f"Resultados de {nombre} eliminados.")
@@ -75,6 +72,18 @@ st.header("3. Contexto del informe")
 objetivo = st.text_area("Objetivo general del informe", value="Redactar un informe ejecutivo que interprete los resultados cuantitativos disponibles.", height=90)
 descripcion_datos = st.text_area("Descripción breve de los datos", value="Los datos corresponden a una base cuantitativa utilizada con fines académicos.", height=90)
 
+with st.expander("Contexto externo: links web de noticias o referencias", expanded=True):
+    st.write("Pegue hasta cinco links que sirvan como contexto para el análisis. La app no lee estos links; los incorpora al prompt para orientar a la IA.")
+    links_contexto = []
+    for i in range(1, 6):
+        links_contexto.append(st.text_input(f"Link de contexto {i}", key=f"link_contexto_{i}"))
+
+with st.expander("Respuestas clave: preguntas que debe contestar el informe", expanded=True):
+    st.write("Escriba hasta tres preguntas clave. El prompt pedirá responderlas en una sección llamada **Respuestas clave**.")
+    preguntas_clave = []
+    for i in range(1, 4):
+        preguntas_clave.append(st.text_area(f"Pregunta clave {i}", key=f"pregunta_clave_{i}", height=70))
+
 c1, c2 = st.columns(2)
 with c1:
     audiencia = st.selectbox("Audiencia", ["Directivos", "Estudiantes", "Clientes", "Comité técnico", "Público general"])
@@ -89,7 +98,17 @@ if not resultados_cargados:
     st.warning("No hay resultados cargados para construir el prompt.")
 else:
     if st.button("Generar prompt con estos resultados"):
-        prompt = construir_prompt_integrado(resultados_cargados, objetivo, descripcion_datos, audiencia, tono, extension, nivel_tecnico)
+        prompt = construir_prompt_integrado(
+            resultados_cargados,
+            objetivo,
+            descripcion_datos,
+            audiencia,
+            tono,
+            extension,
+            nivel_tecnico,
+            links_contexto=links_contexto,
+            preguntas_clave=preguntas_clave,
+        )
         st.session_state["prompt_resumen_ejecutivo"] = prompt
         st.success("Prompt generado.")
 

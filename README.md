@@ -1,4 +1,4 @@
-# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.4
+# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.5
 
 Aplicación educativa en Streamlit con 8 módulos:
 
@@ -63,3 +63,15 @@ Esta aplicación tiene únicamente fines pedagógicos. Su objetivo es que los es
 
 - En los informes PDF, los valores numéricos de las tablas se muestran con máximo cuatro decimales.
 - Los números muy pequeños o muy grandes se muestran en notación científica con cuatro decimales.
+
+## Cambios v1.5
+
+- Regresión lineal: reporte OLS reorganizado en tablas.
+- Regresión lineal: ecuación de especificación antes de resultados.
+- Regresión lineal: pronóstico con últimos N datos definidos en la columna izquierda.
+- Regresión lineal: tabla y gráfico de pronóstico; gráfico de variable explicada histórica vs. estimada.
+- Otras regresiones: gráfico de variable explicada real vs. predicha.
+- Clasificación: en regresión logística se puede calcular P(Y=1|X), no solo clasificar.
+- Informe ejecutivo: links web de contexto y hasta tres preguntas para sección “Respuestas clave”.
+- Red neuronal: esquema visual de arquitectura y gráfico de variable objetivo real vs. resultado del modelo.
+- Se incorpora descripción de variables en los módulos principales para Excel, PDF, JSON y prompt ejecutivo.

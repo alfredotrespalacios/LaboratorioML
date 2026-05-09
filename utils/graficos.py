@@ -148,3 +148,72 @@ def grafico_perfil_clusters(perfil_df: pd.DataFrame):
 def grafico_loss_curve(loss_curve):
     df = pd.DataFrame({"Iteración": range(1, len(loss_curve)+1), "Pérdida": loss_curve})
     return px.line(df, x="Iteración", y="Pérdida", title="Evolución de la pérdida")
+
+
+def grafico_lineas_modelo(df: pd.DataFrame, x_col: str, y_cols: list[str], titulo: str):
+    work = df.copy()
+    if x_col not in work.columns:
+        work[x_col] = range(len(work))
+    cols = [c for c in y_cols if c in work.columns]
+    fig = px.line(work, x=x_col, y=cols, title=titulo, markers=True)
+    fig.update_layout(hovermode="x unified", xaxis_title=x_col, yaxis_title="Valor")
+    return fig
+
+def grafico_probabilidades(df: pd.DataFrame, prob_col: str, x_col: str = "observacion", titulo: str = "Probabilidad estimada"):
+    work = df.copy()
+    if x_col not in work.columns:
+        work[x_col] = range(len(work))
+    fig = px.line(work, x=x_col, y=prob_col, title=titulo, markers=True)
+    fig.update_layout(hovermode="x unified", yaxis_title="Probabilidad")
+    return fig
+
+def grafico_arquitectura_red(n_entradas: int, capas_ocultas: int, neuronas_por_capa: int, n_salidas: int = 1):
+    import plotly.graph_objects as go
+    max_visibles = 12
+    capas = [("Entrada", int(n_entradas))]
+    for i in range(int(capas_ocultas)):
+        capas.append((f"Oculta {i+1}", int(neuronas_por_capa)))
+    capas.append(("Salida", int(n_salidas)))
+
+    xs, ys, labels = [], [], []
+    node_positions = []
+    for layer_idx, (layer_name, n_nodes) in enumerate(capas):
+        visible = max(1, min(int(n_nodes), max_visibles))
+        y_vals = [0] if visible == 1 else [i - (visible - 1) / 2 for i in range(visible)]
+        y_vals = list(reversed(y_vals))
+        layer_positions = []
+        for j, y in enumerate(y_vals):
+            xs.append(layer_idx)
+            ys.append(y)
+            labels.append(layer_name if j == 0 else "")
+            layer_positions.append((layer_idx, y))
+        node_positions.append(layer_positions)
+
+    edge_x, edge_y = [], []
+    for i in range(len(node_positions) - 1):
+        for x0, y0 in node_positions[i]:
+            for x1, y1 in node_positions[i + 1]:
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=edge_x, y=edge_y, mode="lines", line=dict(width=0.5), hoverinfo="skip", name="Conexiones"))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers+text", marker=dict(size=18), text=labels, textposition="top center", name="Neuronas"))
+
+    annotations = []
+    for i, (name, n_nodes) in enumerate(capas):
+        top_y = max([p[1] for p in node_positions[i]]) if node_positions[i] else 0
+        text = f"{name}<br>{n_nodes} nodo(s)"
+        if int(n_nodes) > max_visibles:
+            text += f"<br>se muestran {max_visibles}"
+        annotations.append(dict(x=i, y=top_y + 1.2, text=text, showarrow=False, align="center"))
+
+    fig.update_layout(
+        title="Esquema visual de la red neuronal",
+        annotations=annotations,
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        plot_bgcolor="white",
+        height=520,
+    )
+    return fig
