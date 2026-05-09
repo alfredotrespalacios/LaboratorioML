@@ -156,6 +156,11 @@ if st.button("Estimar regresión lineal"):
     diag = diagnostico_residuales(resid, max_lags=max_lags)
     diag_resumen = {k: v for k, v in diag.items() if k not in ["acf", "pacf"]}
 
+    p_jb = diag_resumen.get("p_valor_jarque_bera")
+    conclusion_jb = "No disponible"
+    if p_jb is not None:
+        conclusion_jb = "Se rechaza normalidad al 5%" if p_jb < 0.05 else "No se rechaza normalidad al 5%"
+
     resumen_modelo = {
         "variable_dependiente": y_nombre,
         "n_observaciones_calibracion": int(modelo.nobs),
@@ -170,6 +175,27 @@ if st.button("Estimar regresión lineal"):
         "df_residuales": float(modelo.df_resid),
         "df_modelo": float(modelo.df_model),
     }
+
+    resumen_visual_df = pd.DataFrame([
+        {"indicador": "Variable dependiente", "valor": y_nombre, "interpretacion": "Variable explicada del modelo."},
+        {"indicador": "Observaciones de calibración", "valor": int(modelo.nobs), "interpretacion": "Datos usados para estimar los coeficientes."},
+        {"indicador": "Observaciones de pronóstico", "valor": int(len(datos_fore)), "interpretacion": "Datos finales reservados para pronosticar."},
+        {"indicador": "R²", "valor": float(modelo.rsquared), "interpretacion": "Proporción de variabilidad explicada por el modelo."},
+        {"indicador": "R² ajustado", "valor": float(modelo.rsquared_adj), "interpretacion": "R² ajustado por número de variables explicativas."},
+        {"indicador": "F-statistic", "valor": float(modelo.fvalue) if modelo.fvalue is not None else None, "interpretacion": "Evalúa significancia global del modelo."},
+        {"indicador": "Prob(F-statistic)", "valor": float(modelo.f_pvalue) if modelo.f_pvalue is not None else None, "interpretacion": "p-valor de la prueba de significancia global."},
+        {"indicador": "AIC", "valor": float(modelo.aic), "interpretacion": "Criterio de información para comparar modelos."},
+        {"indicador": "BIC", "valor": float(modelo.bic), "interpretacion": "Criterio de información con mayor penalización por complejidad."},
+    ])
+
+    diagnostico_visual_df = pd.DataFrame([
+        {"indicador": "Jarque-Bera", "valor": diag_resumen.get("jarque_bera"), "interpretacion": "Prueba de normalidad de residuales."},
+        {"indicador": "p-valor Jarque-Bera", "valor": diag_resumen.get("p_valor_jarque_bera"), "interpretacion": conclusion_jb},
+        {"indicador": "Durbin-Watson", "valor": diag_resumen.get("durbin_watson"), "interpretacion": "Valores cercanos a 2 sugieren baja autocorrelación de primer orden."},
+        {"indicador": "Media residuales", "valor": diag_resumen.get("media"), "interpretacion": "Promedio de los errores del modelo."},
+        {"indicador": "Varianza residuales", "valor": diag_resumen.get("varianza"), "interpretacion": "Dispersión de los errores."},
+        {"indicador": "Autocorrelación orden 1", "valor": diag_resumen.get("autocorrelacion_orden_1"), "interpretacion": "Dependencia lineal de los residuales con su primer rezago."},
+    ])
 
     calibracion_df = pd.DataFrame({
         "eje_x": datos_cal["_eje_x"].values,
@@ -206,8 +232,10 @@ if st.button("Estimar regresión lineal"):
         "ecuacion_especificacion": ecuacion_texto,
         "observaciones_eliminadas": filas_antes - filas_validas,
         "resumen_modelo": resumen_modelo,
+        "resumen_visual": resumen_visual_df.to_dict(orient="records"),
         "coeficientes": coef_table.to_dict(orient="records"),
         "diagnostico_residuales": diag_resumen,
+        "diagnostico_visual": diagnostico_visual_df.to_dict(orient="records"),
         "acf_residuales": diag.get("acf", []),
         "pacf_residuales": diag.get("pacf", []),
         "reporte_statsmodels": modelo.summary().as_text(),
@@ -222,22 +250,49 @@ if res:
     st.write(res["ecuacion_especificacion"])
 
     resumen_df = pd.DataFrame([res["resumen_modelo"]])
+    resumen_visual_df = pd.DataFrame(res.get("resumen_visual", []))
     coef_df = pd.DataFrame(res["coeficientes"])
     diag_df = pd.DataFrame([res["diagnostico_residuales"]])
+    diagnostico_visual_df = pd.DataFrame(res.get("diagnostico_visual", []))
     cal_df = pd.DataFrame(res["calibracion"])
     pron_df = pd.DataFrame(res["pronostico"])
     serie_df = pd.DataFrame(res["serie_modelo"])
     desc_df = descripcion_variables_df(res.get("descripcion_variables", {}))
 
-    st.subheader("Resumen organizado del modelo")
-    st.dataframe(resumen_df, use_container_width=True)
+    st.header("Reporte visual organizado del modelo lineal")
+    st.caption("Esta sección reorganiza el resultado de statsmodels en tablas más legibles para la clase.")
 
-    st.subheader("Coeficientes y significancia")
+    st.subheader("Resumen del modelo")
+    st.dataframe(resumen_visual_df, use_container_width=True)
+
+    metric_cols = st.columns(4)
+    with metric_cols[0]:
+        st.metric("R²", f"{res['resumen_modelo'].get('r2', 0):.4f}")
+    with metric_cols[1]:
+        st.metric("R² ajustado", f"{res['resumen_modelo'].get('r2_ajustado', 0):.4f}")
+    with metric_cols[2]:
+        st.metric("F-statistic", f"{res['resumen_modelo'].get('f_statistic', 0):.4f}")
+    with metric_cols[3]:
+        st.metric("Prob(F)", f"{res['resumen_modelo'].get('prob_f_statistic', 0):.4e}")
+
+    st.subheader("Coeficientes estimados y significancia individual")
     st.dataframe(coef_df, use_container_width=True)
     st.plotly_chart(grafico_coeficientes(coef_df), use_container_width=True)
 
-    with st.expander("Ver reporte completo de statsmodels", expanded=False):
-        st.text(res["reporte_statsmodels"])
+    st.subheader("Diagnóstico de residuales")
+    st.dataframe(diagnostico_visual_df, use_container_width=True)
+
+    p_jb = res["diagnostico_residuales"].get("p_valor_jarque_bera")
+    if p_jb is not None:
+        if p_jb < 0.05:
+            st.warning("Conclusión: se rechaza normalidad de residuales al 5% según Jarque-Bera.")
+        else:
+            st.success("Conclusión: no se rechaza normalidad de residuales al 5% según Jarque-Bera.")
+
+    st.header("Reporte completo de statsmodels")
+    st.caption("Se conserva el reporte original de statsmodels como anexo técnico. También se exporta al Excel en la hoja Reporte_OLS.")
+    with st.expander("Ver reporte completo OLS en formato original", expanded=True):
+        st.code(res["reporte_statsmodels"], language="text")
 
     st.subheader("Variable explicada histórica y resultado del modelo en calibración")
     st.plotly_chart(grafico_lineas_modelo(cal_df, "eje_x", ["y_observada", "y_estimada"], "Variable explicada observada vs. estimada en calibración"), use_container_width=True)
@@ -250,16 +305,6 @@ if res:
         st.dataframe(pron_df, use_container_width=True)
         st.plotly_chart(grafico_lineas_modelo(serie_df, "eje_x", ["y_observada", "y_estimada", "y_pronosticada"], "Calibración y pronóstico de la variable explicada"), use_container_width=True)
         st.caption("La línea pronosticada corresponde a los datos finales reservados que no se usaron para calibrar el modelo.")
-
-    st.subheader("Diagnóstico de residuales")
-    st.dataframe(diag_df, use_container_width=True)
-
-    p_jb = res["diagnostico_residuales"].get("p_valor_jarque_bera")
-    if p_jb is not None:
-        if p_jb < 0.05:
-            st.warning("Conclusión: se rechaza normalidad de residuales al 5% según Jarque-Bera.")
-        else:
-            st.success("Conclusión: no se rechaza normalidad de residuales al 5% según Jarque-Bera.")
 
     c3, c4 = st.columns(2)
     with c3:
@@ -291,8 +336,10 @@ if res:
     with c2:
         excel = preparar_excel_generico(res, {
             "Descripcion_variables": desc_df,
+            "Resumen_visual": resumen_visual_df,
             "Resumen_modelo": resumen_df,
             "Coeficientes": coef_df,
+            "Diagnostico_visual": diagnostico_visual_df,
             "Diagnostico": diag_df,
             "Calibracion": cal_df,
             "Pronostico": pron_df,
@@ -310,9 +357,9 @@ if res:
             res,
             tablas=[
                 ("Descripción de variables", desc_df),
-                ("Resumen del modelo", resumen_df),
+                ("Resumen visual", resumen_visual_df),
                 ("Coeficientes", coef_df),
-                ("Diagnóstico de residuales", diag_df),
+                ("Diagnóstico visual", diagnostico_visual_df),
                 ("Calibración", cal_df),
                 ("Pronóstico", pron_df),
                 ("ACF residuales", pd.DataFrame(res["acf_residuales"])),
@@ -325,7 +372,7 @@ if res:
                 ("ACF de residuales", grafico_acf_pacf_interactivo(res["acf_residuales"], "ACF de residuales", len(cal_df)), "Explora autocorrelación de residuales."),
                 ("PACF de residuales", grafico_acf_pacf_interactivo(res["pacf_residuales"], "PACF de residuales", len(cal_df)), "Explora autocorrelación parcial de residuales."),
             ],
-            notas=["La ecuación de especificación aparece antes de los resultados.", "Los últimos datos reservados se usan para pronóstico y no para calibración."]
+            notas=["Se incluye un reporte visual organizado y se conserva el reporte original de statsmodels como anexo técnico en Excel.", "Los últimos datos reservados se usan para pronóstico y no para calibración."]
         )
         st.download_button("Descargar PDF", pdf_bytes, "informe_regresion_lineal.pdf", "application/pdf")
     with c5:

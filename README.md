@@ -1,4 +1,4 @@
-# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.7
+# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.8
 
 Aplicación educativa en Streamlit con 8 módulos:
 
@@ -94,3 +94,12 @@ Esta aplicación tiene únicamente fines pedagógicos. Su objetivo es que los es
 - Se limpian caracteres no válidos para XML/Excel antes de escribir los libros.
 - En el módulo de informe ejecutivo se dejan solo dos links de contexto noticioso.
 - El prompt solicita una sección específica llamada “Contexto noticioso”.
+
+
+## Cambios v1.8
+
+- En el módulo de regresión lineal se agregan dos vistas:
+  - Reporte visual organizado del modelo lineal.
+  - Reporte completo de statsmodels en formato original.
+- El reporte visual organiza resumen, coeficientes y diagnóstico de residuales en tablas limpias.
+- Se mantiene el reporte OLS original como anexo técnico visible en la app y exportado al Excel en la hoja `Reporte_OLS`.
