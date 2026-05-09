@@ -1,4 +1,4 @@
-# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.5
+# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.6
 
 Aplicación educativa en Streamlit con 8 módulos:
 
@@ -75,3 +75,13 @@ Esta aplicación tiene únicamente fines pedagógicos. Su objetivo es que los es
 - Informe ejecutivo: links web de contexto y hasta tres preguntas para sección “Respuestas clave”.
 - Red neuronal: esquema visual de arquitectura y gráfico de variable objetivo real vs. resultado del modelo.
 - Se incorpora descripción de variables en los módulos principales para Excel, PDF, JSON y prompt ejecutivo.
+
+
+## Cambios v1.6
+
+- Se verifica explícitamente que `utils/graficos.py` incluya:
+  - `grafico_lineas_modelo`
+  - `grafico_probabilidades`
+  - `grafico_arquitectura_red`
+- Se corrige el error de importación en Streamlit Cloud asociado a `grafico_lineas_modelo`.
+- Se mantiene la versión con regresión lineal reorganizada, pronóstico, regresión logística como probabilidad, esquema visual de red neuronal y sección “Respuestas clave”.

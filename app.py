@@ -7,7 +7,7 @@ st.set_page_config(
 )
 
 st.title("📊 Laboratorio de Machine Learning e Inteligencia Artificial para Finanzas")
-st.subheader("Versión completa v1.5")
+st.subheader("Versión completa v1.6")
 
 st.markdown(
     """
