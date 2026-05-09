@@ -1,4 +1,4 @@
-# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.8
+# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.10
 
 Aplicación educativa en Streamlit con 8 módulos:
 
@@ -103,3 +103,26 @@ Esta aplicación tiene únicamente fines pedagógicos. Su objetivo es que los es
   - Reporte completo de statsmodels en formato original.
 - El reporte visual organiza resumen, coeficientes y diagnóstico de residuales en tablas limpias.
 - Se mantiene el reporte OLS original como anexo técnico visible en la app y exportado al Excel en la hoja `Reporte_OLS`.
+
+
+## Cambios v1.9
+
+- En el módulo de red neuronal, cuando el problema es de regresión, se agrega una tabla comparativa de estadísticos descriptivos entre:
+  - variable explicada histórica,
+  - variable estimada por la red neuronal.
+- La tabla incluye media, mediana, varianza, desviación estándar, mínimo, máximo, asimetría y percentiles 1, 5, 25, 50, 75, 95 y 99.
+- La comparación descriptiva se exporta a Excel y al PDF del módulo.
+
+
+## Cambios v1.10
+
+- En el módulo de red neuronal para regresión se agregan residuales:
+  - tabla con y real, y predicho y residual,
+  - estadísticos descriptivos de residuales,
+  - gráfica de residuales,
+  - histograma de residuales.
+- En el módulo de red neuronal para regresión se agrega pronóstico con los últimos N datos reservados:
+  - parámetro en la columna izquierda,
+  - tabla de pronóstico,
+  - gráfica de calibración y pronóstico.
+- Los nuevos resultados se exportan a Excel, PDF, JSON y se guardan para el informe ejecutivo.
