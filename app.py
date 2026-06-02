@@ -7,7 +7,7 @@ st.set_page_config(
 )
 
 st.title("📊 Laboratorio de Machine Learning e Inteligencia Artificial para Finanzas")
-st.subheader("Versión completa v1.11")
+st.subheader("Versión completa v1.13")
 
 st.markdown(
     """
@@ -71,16 +71,18 @@ st.table(
         "Módulo": [
             "1. Estadística descriptiva",
             "2. Regresión lineal",
-            "3. Otras regresiones",
-            "4. Clasificación",
-            "5. Reducción de dimensionalidad - PCA",
-            "6. Clustering",
-            "7. Red neuronal",
-            "8. Resumen ejecutivo",
+            "3. KNN Regresión",
+            "4. Otras regresiones",
+            "5. Clasificación",
+            "6. Reducción de dimensionalidad - PCA",
+            "7. Clustering",
+            "8. Red neuronal",
+            "9. Resumen ejecutivo",
         ],
         "Archivo de datos por defecto": [
             "data/datos_descriptiva.xlsx",
             "data/datos_regresion_lineal.xlsx",
+            "data/datos_knn_regresion.xlsx",
             "data/datos_otras_regresiones.xlsx",
             "data/datos_clasificacion.xlsx",
             "data/datos_pca.xlsx",
@@ -88,21 +90,12 @@ st.table(
             "data/datos_red_neuronal.xlsx",
             "Usa resultados guardados",
         ],
-        "Estado": [
-            "Disponible",
-            "Disponible",
-            "Disponible",
-            "Disponible",
-            "Disponible",
-            "Disponible",
-            "Disponible",
-            "Disponible",
-        ],
+        "Estado": ["Disponible"] * 9,
     }
 )
 
 st.markdown("---")
 
 st.success(
-    "Aplicación completa lista: 8 módulos, datos por defecto, Plotly, exportación Excel/JSON/PDF y resumen ejecutivo."
+    "Aplicación completa lista: 9 módulos, datos por defecto, Plotly, exportación Excel/JSON/PDF y resumen ejecutivo."
 )

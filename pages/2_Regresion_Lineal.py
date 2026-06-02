@@ -24,6 +24,7 @@ from utils.pronostico import (
     agregar_errores_pronostico,
     descripcion_modo_pronostico,
     metricas_pronostico,
+    theil_u,
 )
 from utils.transformaciones import aplicar_log_si_corresponde, ordenar_por_fecha
 from utils.variables import capturar_descripcion_variables, descripcion_variables_df
@@ -193,6 +194,7 @@ if st.button("Estimar regresión lineal"):
         "prob_f_statistic": float(modelo.f_pvalue) if modelo.f_pvalue is not None else None,
         "aic": float(modelo.aic),
         "bic": float(modelo.bic),
+        "U_Theil_calibracion": theil_u(y_cal, y_hat_cal),
     }
 
     resumen_visual_df = pd.DataFrame([
@@ -204,6 +206,7 @@ if st.button("Estimar regresión lineal"):
         {"indicador": "R²", "valor": float(modelo.rsquared), "interpretacion": "Proporción de variabilidad explicada."},
         {"indicador": "R² ajustado", "valor": float(modelo.rsquared_adj), "interpretacion": "R² ajustado por número de variables."},
         {"indicador": "Prob(F-statistic)", "valor": float(modelo.f_pvalue) if modelo.f_pvalue is not None else None, "interpretacion": "Significancia global del modelo."},
+        {"indicador": "U de Theil calibración", "valor": theil_u(y_cal, y_hat_cal), "interpretacion": "Compara el error del modelo contra un pronóstico ingenuo. Valores menores que 1 sugieren mejor desempeño que el ingenuo."},
     ])
 
     diagnostico_visual_df = pd.DataFrame([

@@ -54,6 +54,7 @@ def metricas_pronostico(y_real, y_pred) -> dict:
         "MSE_pronostico": float(mse),
         "RMSE_pronostico": float(rmse),
         "MAPE_pronostico_porcentaje": mape,
+        "U_Theil_pronostico": theil_u(y_real, y_pred),
         "n_pronostico_evaluable": int(len(y_real)),
     }
 
@@ -68,3 +69,22 @@ def agregar_errores_pronostico(df: pd.DataFrame, real_col: str, pred_col: str) -
             np.nan,
         )
     return work
+
+
+def theil_u(y_real, y_pred):
+    """
+    U de Theil tipo U2. Valores menores que 1 sugieren que el modelo supera
+    a un pronóstico ingenuo y_t_hat = y_{t-1}.
+    """
+    y_real = pd.Series(y_real).astype(float).reset_index(drop=True)
+    y_pred = pd.Series(y_pred).astype(float).reset_index(drop=True)
+    mask = y_real.notna() & y_pred.notna()
+    y_real = y_real[mask].reset_index(drop=True)
+    y_pred = y_pred[mask].reset_index(drop=True)
+    if len(y_real) < 2:
+        return None
+    rmse_modelo = float(np.sqrt(np.mean((y_real - y_pred) ** 2)))
+    rmse_ingenuo = float(np.sqrt(np.mean((y_real.iloc[1:].values - y_real.iloc[:-1].values) ** 2)))
+    if rmse_ingenuo == 0:
+        return None
+    return float(rmse_modelo / rmse_ingenuo)

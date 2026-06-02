@@ -1,4 +1,4 @@
-# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.11
+# Laboratorio de Machine Learning e IA para Finanzas - versión completa v1.13
 
 Aplicación educativa en Streamlit con 8 módulos:
 
@@ -144,3 +144,23 @@ Esta aplicación tiene únicamente fines pedagógicos. Su objetivo es que los es
 - La explicación del modo aparece en pantalla, Excel, JSON, PDF y resultados para el informe ejecutivo.
 - Cuando el modo es evaluación predictiva, se calculan métricas de pronóstico: MAE, MSE, RMSE y MAPE cuando aplica.
 - Cuando el modo es valores no observados, el sistema pronostica filas donde Y está vacía y aclara que no hay error observable.
+
+
+## Cambios v1.12
+
+- En el módulo de red neuronal para regresión se asegura la visualización explícita de la tabla “Métricas de evaluación de pronóstico”.
+- La tabla aparece cuando el modo seleccionado es “Evaluar capacidad predictiva del modelo”.
+- Se añade texto pedagógico para interpretar MAE, RMSE y MAPE del pronóstico.
+- La misma tabla queda disponible en Excel, PDF, JSON y resultados para el informe ejecutivo.
+
+
+## Cambios v1.13
+
+- Se agrega un módulo independiente `3_KNN_Regresion.py`.
+- El nuevo módulo usa `data/datos_knn_regresion.xlsx`, copia pedagógica de los datos de regresión lineal para facilitar comparación.
+- KNN Regresión permite seleccionar Y y X, transformaciones logarítmicas, K, estandarización, modo de pronóstico, error por K y ejemplo de vecinos más cercanos.
+- Cuando se usa ln(Y), reporta resultados en logaritmo y también retransformados a nivel.
+- Se elimina KNN Regressor de Otras regresiones para evitar duplicidad.
+- Se agrega U de Theil al módulo de regresión lineal.
+- El módulo Resumen Ejecutivo ahora incluye KNN Regresión.
+- La app pasa a tener 9 módulos.
